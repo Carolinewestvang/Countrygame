@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess all countries in 60 seconds!</title>
+    <style>
+        *{
+            box-sizing: border-box;
+        }
+        h1{
+            font-size: 30px;
+            text-align: center;
+			margin: 50px 0;
+			color: white;
+        }
+        #guess{
+            float: left;
+            background-color: rgba(224, 222, 222, 0.603);
+            height: 500px;
+            width: 500px;
+            margin: 30px auto;
+            padding: 1rem;
+        }
+		#guessText{
+			text-align: center;
+			font-size: 24px;
+			padding: 0;
+			margin: 0;
+			color: white;
+		}
+		#guessed{
+			font-size: 30px;
+			font-weight: bold;
+		}
+        #result{
+            float: right;
+            background-color: rgba(0, 218, 247, 0.295);
+            height: 500px;
+            width: 500px;
+            margin: 30px auto;
+            padding: 1rem;
+        }
+        #start{
+            display: block;
+			margin: 0 auto;
+			align-items: center;
+			border-radius: 0;
+			width: 160px;
+			height: 60px;
+			font-size: 24px;
+			background-color: rgb(109, 64, 214);
+			border: 2px solid white;
+			font-weight: bold;
+			color: white;
+        }
+		#start:hover{
+			background-color:rgb(43, 43, 43);
+			color: white;
+		}
+        #countryInput{
+            background-color: rgb(85, 85, 85);
+			color: white;
+			margin:  70px 55px;
+			font-size: 24px;
+			height: 50px;
+        }
+        #countryOutput{
+            background-color: rgba(255, 255, 255, 0.548);
+            height: 400px;
+			font-size: 24px;
+			overflow: auto;
+        }
+        #seconds{
+            display: none;
+			text-align: center;
+			margin: 100px auto;
+			font-size: 36px;
+			color: white;
+        }
+        #teller{
+            font-size: 36px;
+			color: black;
+        }
+		#resultContainer{
+			background-color: rgb(43, 43, 43);
+			position: relative;
+			top: 300px;
+			z-index: 2;
+			height: 100px;;
+			width: 400px;
+			margin: 0 auto;
+			border: 1px solid white;
+			display: none;
+			padding: 0;
+		}
+		#numberOf{
+			text-align: center;
+			font-size: 20px;
+			margin: 0;
+			color:white;
+		}
+		#timeUp{
+			text-align: center;
+			font-size: 30px;
+			margin: 10px;
+			color: red;
+		}
+		#restart{
+			display: none;
+			margin: 0 auto;
+			align-items: center;
+			border-radius: 0;
+			width: 170px;
+			height: 60px;
+			font-size: 24px;
+			background-color: rgb(37, 143, 241);
+			border: 2px solid white;
+			color: white;
+			font-weight: bold;
+        }
+		#restart:hover{
+			background-color:rgb(43, 43, 43);
+			color: white;
+		}
+		#total{
+			font-weight: bold;
+			font-size: 32px;
+			padding: 4px;
+			color: lime;
+		}
+		#tryAgain{
+			color: black;
+			display: none;
+			text-align: center;
+			margin: 0;
+			padding: 0;
+			font-size: 20px;
+		}
+		#incorrect{
+			font-weight: bold;
+			color: red;
+		}
+		body{
+			background-image: url("earth.avif");
+		}
+    </style>
+</head>
+<body>
+    <h1>Guess all the countries of the world, in only 60 seconds! How many can you do?</h1>	
+	<div id="resultContainer">
+	<p id="timeUp">
+		TIME IS UP!
+	</p>
+	<p id="numberOf">
+		You guessed a total of <span id="total">0</span> countries correct!
+	</p>
+	</div>
+    <div id="guess">
+    <form autocomplete="off"><!--autocomplete = off for å hindre at det blir foreslått tidligere innskrivinger, fant dette her: https://gist.github.com/niksumeiko/360164708c3b326bd1c8-->
+    <input type="text" placeholder="Type a country..." id="countryInput"  disabled onkeydown="sendIn(this)"></input> <!--La inn kall til sendIn funksjonen her, slik at inputfeltet blir koblet til funksjonen. Fant denne ideen her: https://stackoverflow.com/questions/20998541/get-the-value-of-input-text-when-enter-key-pressed-->
+    </form>
+	<p id="tryAgain">
+		<span id="incorrect">INCORRECT.</span><br><br>Maybe you misspelt something? Please try again...<br><strong>Hint:</strong> always remember capital letters in country names.</p>
+    <p id= "seconds">
+		<span id="teller">60</span> seconds left!</p>
+    </div>
+    <div id="result">
+    <p id="guessText">
+		<span id="guessed">0</span> guessed countries</p>
+    <ul id="countryOutput">
+    </ul>	
+    </div>
+	<button id="start" onclick="startGame()">Start game!</button>
+	<button id="restart" onclick="startGame()">Restart game</button>
+
+    <script>
+		//Plasserte deklarerte variabler øverst underveis, slik at jeg hadde bedre oversikt over de.
+		var timer = 10000;//Satt timer til 10000 ettersom den startet å telle med en gang. satt display = none i CSS for å skjule den før start.
+		var guessedC = [];
+		var guessCount = 0;
+
+        //Lager en funskjon for en rekke handlinger som skal skje når start game og restart game knappene klikkes. 
+        function startGame() {
+			guessedC = []; //Må tømme array på nytt ved start, for å fjerne lagrede gjett fra forrige spill.
+			document.getElementById("resultContainer").style.display = "none"; //Tømmer oversikten over gjettede land
+            document.getElementById("restart").style.display = "none"; //Gjemmer restart game knapp
+			document.getElementById("start").style.display = "none"; // Gjemmer start knappen
+			//De tre neste linjene med kode endrer CSS på HTML elementer.
+            document.getElementById("countryInput").style.backgroundColor = "white"; 
+			document.getElementById("countryInput").style.color = "black"; 
+			document.getElementById("countryOutput").style.backgroundColor = "rgba(255, 255, 255, 0.548)"; 
+			document.getElementById("tryAgain").style.display = "none"; //Fjerner tryAgain tekst ved start
+            document.getElementById("seconds").style.display = "block"; //Viser timeren
+			document.getElementById('countryInput').disabled = false; //Fjerner disabled attributet til input feltet. Fant denne koden her: https://www.geeksforgeeks.org/how-to-remove-disabled-attribute-from-html-input-element-using-javascript/
+            timer = 61; //Satt timer til 61, slik at det ser ut som at timer starter på 60 istedet for 59 i grensesnittet
+			guessCount = 0; //Nuller ut land telleren i nytt spill
+			document.getElementById("guessed").innerHTML = guessCount;//Skriver ut den oppdaterte teller verdien til HTML
+			document.getElementById("total").innerHTML = guessCount;
+			document.getElementById("countryOutput").innerHTML = null; //Fjerner gjettede land fra oversikten fra forrige spill
+			countDown(); //Kjører teller funksjonen for at den skal starte når spillet starter.
+        }
+        
+        //Må lage en fuksjon for timeren, som kan kjøres i startgame funksjonen. Hentet inspirasjon til denne koden fra deleksamen 3.
+        function countDown() {
+            timer--; //Teller en mindre for hver gang
+            if(timer === 30){ //Hvis timer er lik 30
+                document.getElementById("teller").style.color = "orange";//Endres teller til oransje
+            }
+            if(timer === 10){ //Hvis timer er lik 10
+                document.getElementById("teller").style.color = "red";//Endres teller til rød
+            }
+            if(timer <= 0) { //Hvis timer er mindre enn eller lik 0
+				clearInterval(countDown); //Stopper timeren (intervalen).
+                timer = 0; //Timer settes til 0
+				document.getElementById("restart").style.display = "block"; //Restart game knapp blir synlig
+				document.getElementById("resultContainer").style.display = "block"; //Gjør boks med resultat info synlig.
+				document.getElementById("countryInput").style.backgroundColor = "rgb(85, 85, 85)"; //Endrer CSS
+				document.getElementById("countryOutput").style.backgroundColor = "rgba(85, 85, 85, 0.753)"; //Endrer CSS
+				document.getElementById('countryInput').disabled = true; //Setter input felt tilbake til disabled
+				document.getElementById("countryInput").value = null; //Fjerner innskrevet tekst, dersom det finnes noe når timer er på 0
+            }
+            document.getElementById("teller").innerHTML = timer; //Knytter timeren til riktig sted i HTML koden.        
+        }
+        setInterval(countDown, 1000); //Intervall som kjører countDown() hvert 1000'ende millisekund. Det er denne koden som gjør timeren til en timer.
+
+        //Funksjon for å sørge for at brukerinput kan sendes inn ved å trykke på enter tasten. Samt hvilke handlinger som skal skje dersom enter tasten trykkes på.
+        function sendIn(e){ // Fant inspirasjon til denne funksjonen her: Kilde: https://stackoverflow.com/questions/20998541/get-the-value-of-input-text-when-enter-key-pressed
+            if(event.key === "Enter"){ //Hvis enter trykkes på
+				var inn = document.getElementById("countryInput").value; //Variabel som inneholder brukerinput
+				event.preventDefault();//Forhindrer refresh av side. Kilde: https://pretagteam.com/question/stop-reloading-page-with-enter-key
+                //Kjører en if test som sjekker om brukerinput eksisterer i countryList arrayen og om den ikke eksisterer i guessedC arrayen.
+                if (!guessedC.includes(inn) && countryList.includes(inn)) {//Includes sjekker om en array inneholder input. Fant dette her: https://stackoverflow.com/questions/55957237/checking-if-input-value-matches-the-array-items
+				guessedC.push(inn); //Pusher gjettet land inn i guessedC array. Hentet fra: https://www.w3schools.com/jsref/jsref_push.asp 
+                guessCount++; //Teller som øker med 1 hver gang et riktig land blir gjettet.
+				document.getElementById("guessed").innerHTML = guessCount; //Skriver ut teller til antall gjettede land
+				document.getElementById("total").innerHTML = guessCount; //Skriver ut teller til resultat boks
+                document.getElementById("countryOutput").innerHTML +=  "<li>" + inn + "</li>"; //Skriver ut listepunkt pluss input inn i oversikt over gjettede land.
+                document.getElementById("countryInput").value = null;//Nuller ut innskrevet tekst fra input felt. Fant dette her: https://stackoverflow.com/questions/20416803/how-do-i-clear-the-previous-text-field-value-after-submitting-the-form-with-out/20416861
+				document.getElementById("tryAgain").style.display = "none"; //Fjerner tryAgain teksten
+                } else{ //Hvis ikke kriteriene oppfylles
+                document.getElementById("countryInput").value = null; //Null ut tekst i input felt
+				document.getElementById("tryAgain").style.display = "block";//Vis try again tekst    
+                }
+			}
+
+		}
+		//Skriver ut teller til antall gjettede land og resultatboks
+		document.getElementById("guessed").innerHTML = guessCount;
+		document.getElementById("total").innerHTML = guessCount;
+
+    //Setter opp en array med alle verdens land, som brukes i sjekken for å se om spilleren har skrevet inn riktig.
+    var countryList = [
+	"Afghanistan",
+	"Albania",
+	"Algeria",
+	"American Samoa",
+	"Andorra",
+	"Angola",
+	"Anguilla",
+	"Antarctica",
+	"Antigua and Barbuda",
+	"Argentina",
+	"Armenia",
+	"Aruba",
+	"Australia",
+	"Austria",
+	"Azerbaijan",
+	"Bahamas",
+	"Bahrain",
+	"Bangladesh",
+	"Barbados",
+	"Belarus",
+	"Belgium",
+	"Belize",
+	"Benin",
+	"Bermuda",
+	"Bhutan",
+	"Bolivia",
+	"Bonaire, Sint Eustatius and Saba",
+	"Bosnia and Herzegovina",
+	"Botswana",
+	"Bouvet Island",
+	"Brazil",
+	"British Indian Ocean Territory",
+	"Brunei Darussalam",
+	"Bulgaria",
+	"Burkina Faso",
+	"Burundi",
+	"Cabo Verde",
+	"Cambodia",
+	"Cameroon",
+	"Canada",
+	"Cayman Islands",
+	"Central African Republic",
+	"Chad",
+	"Chile",
+	"China",
+	"Christmas Island",
+	"Cocos (Keeling) Islands",
+	"Colombia",
+	"Comoros",
+	"the Democratic Republic of the Congo",
+	"Congo",
+	"Cook Islands",
+	"Costa Rica",
+	"Croatia",
+	"Cuba",
+	"Curaçao",
+	"Cyprus",
+	"Czechia",
+	"Côte d'Ivoire",
+	"Denmark",
+	"Djibouti",
+	"Dominica",
+	"Dominican Republic",
+	"Ecuador",
+	"Egypt",
+	"El Salvador",
+	"Equatorial Guinea",
+	"Eritrea",
+	"Estonia",
+	"Eswatini",
+	"Ethiopia",
+	"Falkland Islands",
+	"Faroe Islands",
+	"Fiji",
+	"Finland",
+	"France",
+	"French Guiana",
+	"French Polynesia",
+	"French Southern Territories",
+	"Gabon",
+	"Gambia",
+	"Georgia",
+	"Germany",
+	"Ghana",
+	"Gibraltar",
+	"Greece",
+	"Greenland",
+	"Grenada",
+	"Guadeloupe",
+	"Guam",
+	"Guatemala",
+	"Guernsey",
+	"Guinea",
+	"Guinea-Bissau",
+	"Guyana",
+	"Haiti",
+	"Heard Island and McDonald Islands",
+	"Holy See",
+	"Honduras",
+	"Hong Kong",
+	"Hungary",
+	"Iceland",
+	"India",
+	"Indonesia",
+	"Iran",
+	"Iraq",
+	"Ireland",
+	"Isle of Man",
+	"Israel",
+	"Italy",
+	"Jamaica",
+	"Japan",
+	"Jersey",
+	"Jordan",
+	"Kazakhstan",
+	"Kenya",
+	"Kiribati",
+	"North Korea",
+	"South Korea",
+	"Kuwait",
+	"Kyrgyzstan",
+	"Lao People's Democratic Republic",
+	"Latvia",
+	"Lebanon",
+	"Lesotho",
+	"Liberia",
+	"Libya",
+	"Liechtenstein",
+	"Lithuania",
+	"Luxembourg",
+	"Macao",
+	"Madagascar",
+	"Malawi",
+	"Malaysia",
+	"Maldives",
+	"Mali",
+	"Malta",
+	"Marshall Islands",
+	"Martinique",
+	"Mauritania",
+	"Mauritius",
+	"Mayotte",
+	"Mexico",
+	"Micronesia",
+	"Moldova",
+	"Monaco",
+	"Mongolia",
+	"Montenegro",
+	"Montserrat",
+	"Morocco",
+	"Mozambique",
+	"Myanmar",
+	"Namibia",
+	"Nauru",
+	"Nepal",
+	"Netherlands",
+	"New Caledonia",
+	"New Zealand",
+	"Nicaragua",
+	"Niger",
+	"Nigeria",
+	"Niue",
+	"Norfolk Island",
+	"Northern Mariana Islands",
+	"Norway",
+	"Oman",
+	"Pakistan",
+	"Palau",
+	"Palestine",
+	"Panama",
+	"Papua New Guinea",
+	"Paraguay",
+	"Peru",
+	"Philippines",
+	"Pitcairn",
+	"Poland",
+	"Portugal",
+	"Puerto Rico",
+	"Qatar",
+	"Republic of North Macedonia",
+	"Romania",
+	"Russia",
+	"Rwanda",
+	"Réunion",
+	"Saint Barthélemy",
+	"Saint Helena, Ascension and Tristan da Cunha",
+	"Saint Kitts and Nevis",
+	"Saint Lucia",
+	"Saint Martin",
+	"Saint Pierre and Miquelon",
+	"Saint Vincent and the Grenadines",
+	"Samoa",
+	"San Marino",
+	"Sao Tome and Principe",
+	"Saudi Arabia",
+	"Senegal",
+	"Serbia",
+	"Seychelles",
+	"Sierra Leone",
+	"Singapore",
+	"Sint Maarten",
+	"Slovakia",
+	"Slovenia",
+	"Solomon Islands",
+	"Somalia",
+	"South Africa",
+	"South Georgia and the South Sandwich Islands",
+	"South Sudan",
+	"Spain",
+	"Sri Lanka",
+	"Sudan",
+	"Suriname",
+	"Svalbard and Jan Mayen",
+	"Sweden",
+	"Switzerland",
+	"Syrian Arab Republic",
+	"Taiwan",
+	"Tajikistan",
+	"Tanzania",
+	"Thailand",
+	"Timor-Leste",
+	"Togo",
+	"Tokelau",
+	"Tonga",
+	"Trinidad and Tobago",
+	"Tunisia",
+	"Turkey",
+	"Turkmenistan",
+	"Turks and Caicos Islands",
+	"Tuvalu",
+	"Uganda",
+	"Ukraine",
+	"United Arab Emirates",
+	"United Kingdom",
+	"United States Minor Outlying Islands",
+	"United States of America",
+	"Uruguay",
+	"Uzbekistan",
+	"Vanuatu",
+	"Venezuela",
+	"Vietnam",
+	"British Virgin Islands",
+	"Virgin Islands U.S.",
+	"Wallis and Futuna",
+	"Western Sahara",
+	"Yemen",
+	"Zambia",
+	"Zimbabwe",
+	"Åland Islands"
+    ]; //Listen er hentet fra: https://gist.github.com/incredimike/1469814
+        
+    </script>
+</body>
+</html>
